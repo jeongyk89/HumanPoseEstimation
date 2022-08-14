@@ -95,7 +95,7 @@ def classify_pose(landmarks, image, display = False):
         print('a')
         if (right_elbow_angle > 70 and right_elbow_angle < 110):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
             print('b')
-            label = "Arm up"
+            label = "Hello pose"
 
 
     if label is not "Uknown pose":
