@@ -167,15 +167,19 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         # Unpack coordinates and put them in a list
         height, width, depth = image.shape
         landmarks = []
-        if len(landmarks) is 0:
-            for landmark in results.pose_landmarks.landmark:
-                # Append the landmark into the list.
-                landmarks.append((int(landmark.x * width),
-                                  int(landmark.y * height),
-                                  int((landmark.z * depth)))
-                                 )
+        try:
+            if len(landmarks) is 0:
+                #if len(landmarks) is 0:
+                for landmark in results.pose_landmarks.landmark:
+                    # Append the landmark into the list.
+                    landmarks.append((int(landmark.x * width),
+                                      int(landmark.y * height),
+                                      int((landmark.z * depth)))
+                                     )
+                image, label = classify_pose(landmarks, image, display)
+        except:
+            pass
 
-        image, label = classify_pose(landmarks, image, display)
 
         cv2.imshow('Webcam is running :)', image)
 
