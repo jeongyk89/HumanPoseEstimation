@@ -10,8 +10,13 @@ mp_drawing = mp.solutions.drawing_utils     # Drawing helpers
 mp_pose = mp.solutions.pose                 # Mediapipe Solutions
 
 cap = cv2.VideoCapture(0)
-time1 = 0
+ledger = []
 
+
+def time_keeping(pose, time_taken):
+    global ledger
+    ledger += (pose, time_taken)
+    return ledger
 
 # Finding the angle between 3 points
 def calculate_angle(a, b, c):
@@ -43,6 +48,8 @@ def calculate_angle(a, b, c):
 def classify_pose(landmarks, image, display = False):
     label = "Unknown pose"
     color = (0, 0, 255)  # Red
+
+    time_start = 0
 
 
     """Angles for six landmarks"""
@@ -89,13 +96,20 @@ def classify_pose(landmarks, image, display = False):
     #
     #                 label = "Warrior II Pose"
 
-    # Check if a shoulder is straight
-    if (right_shoulder_angle > 70 and right_shoulder_angle < 110):# or (left_shoulder_angle > 70 and left_shoulder_angle < 110):
-        # Check if elbow is perpendicular
+    # Note: Camera feed is FLIPPED! Right is left and left is right
+    # Check if a shoulder is straight (parallel to the floor)
+    if (right_shoulder_angle > 60 and right_shoulder_angle < 120):# or (left_shoulder_angle > 70 and left_shoulder_angle < 110):
         print('a')
-        if (right_elbow_angle > 70 and right_elbow_angle < 110):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
+        label = "straight arm"
+        time_now= time()
+
+        time_record = time_now - time_start
+
+        time_keeping(label, time_record)
+        # Check if elbow is perpendicular
+        if (right_elbow_angle > 240 and right_elbow_angle < 300):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
             print('b')
-            label = "Hello pose"
+            label = "Hello pose"  # Person is waving, static
 
 
     if label is not "Uknown pose":
@@ -107,87 +121,90 @@ def classify_pose(landmarks, image, display = False):
     return image, label
 
 
+def main():
+    time1 = 0
+    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+        while cap.isOpened():
+            success, frame = cap.read()
 
-with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
-    while cap.isOpened():
-        success, frame = cap.read()
+            if not success:  # Sometimes I had to force quit the program, this prevents that. Sort of.
+                break
 
-        if not success:  # Sometimes I had to force quit the program, this prevents that. Sort of.
-            break
+            # Flip the video to be a "mirror" on the laptop.
+            frame = cv2.flip(frame, 1)
 
-        # Flip the video to be a "mirror" on the laptop.
-        frame = cv2.flip(frame, 1)
+            # Convert from BGR to RGB colorspace - MediaPipe likes RGB
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image.flags.writeable = False
 
-        # Convert from BGR to RGB colorspace - MediaPipe likes RGB
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image.flags.writeable = False
+            """Detect the poses"""
+            # Make Detections
+            results = pose.process(image)
 
-        """Detect the poses"""
-        # Make Detections
-        results = pose.process(image)
+            # Recolor image back to BGR for rendering - opencv likes BGR
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        # Recolor image back to BGR for rendering - opencv likes BGR
-        image.flags.writeable = True
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            # Avoid breaking the loop is no frame is extracted
+            try:
+                landmarks = results.pose_landmarks.landmark
+            except:
+                pass
 
-        # Avoid breaking the loop is no frame is extracted
-        try:
-            landmarks = results.pose_landmarks.landmark
-        except:
-            pass
+            # 1. Right hand
+            # mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_pose.HAND_CONNECTIONS,
+            #                           mp_drawing.DrawingSpec(color=(80, 22, 10), thickness=2, circle_radius=4),
+            #                           mp_drawing.DrawingSpec(color=(80, 44, 121), thickness=2, circle_radius=2)
+            #                           )
+            #
+            # # 2. Left Hand
+            # mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_pose.HAND_CONNECTIONS,
+            #                           mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
+            #                           mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=2, circle_radius=2)
+            #                           )
 
-        # 1. Right hand
-        # mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_pose.HAND_CONNECTIONS,
-        #                           mp_drawing.DrawingSpec(color=(80, 22, 10), thickness=2, circle_radius=4),
-        #                           mp_drawing.DrawingSpec(color=(80, 44, 121), thickness=2, circle_radius=2)
-        #                           )
-        #
-        # # 2. Left Hand
-        # mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_pose.HAND_CONNECTIONS,
-        #                           mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
-        #                           mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=2, circle_radius=2)
-        #                           )
+            # 3. Pose Detections
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                      mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
+                                      mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
+                                      )
 
-        # 3. Pose Detections
-        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                                  mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
-                                  mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
-                                  )
+            time2 = time()
+            if (time2 - time1) > 0:
+                fps = 1/(time2 - time1)
+                # FPS counter in green with a black border to make it easy to read
+                cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 6)
+                cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
+            time1 = time2
 
-        time2 = time()
-        if (time2 - time1) > 0:
-            fps = 1/(time2 - time1)
-            # FPS counter in green with a black border to make it easy to read
-            cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 6)
-            cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
-        time1 = time2
+            display = False
 
-        display = False
-
-        # Unpack coordinates and put them in a list
-        height, width, depth = image.shape
-        landmarks = []
-        try:
-            if len(landmarks) is 0:
-                #if len(landmarks) is 0:
-                for landmark in results.pose_landmarks.landmark:
-                    # Append the landmark into the list.
-                    landmarks.append((int(landmark.x * width),
-                                      int(landmark.y * height),
-                                      int((landmark.z * depth)))
-                                     )
-                image, label = classify_pose(landmarks, image, display)
-        except:
-            pass
+            # Unpack coordinates and put them in a list
+            height, width, depth = image.shape
+            landmarks = []
+            try:
+                if len(landmarks) is 0:
+                    #if len(landmarks) is 0:
+                    for landmark in results.pose_landmarks.landmark:
+                        # Append the landmark into the list.
+                        landmarks.append((int(landmark.x * width),
+                                          int(landmark.y * height),
+                                          int((landmark.z * depth)))
+                                         )
+                    image, label = classify_pose(landmarks, image, display)
+            except:
+                pass
 
 
-        cv2.imshow('Webcam is running :)', image)
+            cv2.imshow('Webcam is running :)', image)
 
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
+            if cv2.waitKey(10) & 0xFF == ord('q'):
+                break
 
-    cap.release()
-    cv2.destroyAllWindows()
+        cap.release()
+        cv2.destroyAllWindows()
 
-# print(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value])
+    # print(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value])
 
+main()
+print(time_keeping(pose="Stop", time_taken=0))
