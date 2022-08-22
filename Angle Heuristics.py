@@ -27,6 +27,10 @@ def calculate_time(ledger):
         time += timestamps[1]
     return time
 
+def merge_timestamps(ledger):
+    for poses in ledger:
+
+
 
 # Finding the angle between 3 points
 def calculate_angle(a, b, c):
@@ -127,7 +131,7 @@ def main():
         while cap.isOpened():
             success, frame = cap.read()
 
-            starttime = time()
+            record_time_start = time()
 
             if not success:  # Sometimes I had to force quit the program, this prevents that. Sort of.
                 break
@@ -151,7 +155,7 @@ def main():
             try:
                 landmarks = results.pose_landmarks.landmark
             except:
-                print("No frame extracted")
+                # print("No frame extracted")
                 pass
 
             # 1. Right hand
@@ -199,8 +203,9 @@ def main():
                 # Needs better error handling
                 pass
 
+            # Recording the pose and time it is active.
             elapsed_time = time()
-            time_record = elapsed_time - starttime
+            time_record = elapsed_time - record_time_start
             time_keeping(label, time_record)
 
             cv2.imshow('Webcam is running :)', image)
@@ -213,4 +218,5 @@ def main():
 
 
 main()
-print(calculate_time(ledger))
+print(str(round(calculate_time(ledger), 3)) + " seconds")
+print(ledger)
