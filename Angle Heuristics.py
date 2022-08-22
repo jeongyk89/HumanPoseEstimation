@@ -8,19 +8,31 @@ from time import time
 """Set up mediapipe"""
 mp_drawing = mp.solutions.drawing_utils     # Drawing helpers
 mp_pose = mp.solutions.pose                 # Mediapipe Solutions
-
+"""Set up OpenCV"""
 cap = cv2.VideoCapture(0)
+"""Set up time keeping"""
 ledger = []
 
 
 def time_keeping(pose, time_taken):
     global ledger
-    ledger += (pose, time_taken)
+    ledger.append([pose, time_taken])
     return ledger
+
+
+def calculate_time(ledger):
+    time = 0
+    for timestamps in ledger:
+        #for times in timestamps[1]:
+            #time = sum(times)
+        print(timestamps[1])
+        time +=timestamps[1]
+
+    return time
+
 
 # Finding the angle between 3 points
 def calculate_angle(a, b, c):
-    #print(a)
     x1, y1, z1 = a
     x2, y2, z2 = b
     x3, y3, z3 = c
@@ -32,7 +44,6 @@ def calculate_angle(a, b, c):
         angle += 360
     # Return the calculated angle.
     return angle
-
 
     # a = np.array(a)  # Startpoint
     # b = np.array(b)  # Midpoint
@@ -49,8 +60,7 @@ def classify_pose(landmarks, image, display = False):
     label = "Unknown pose"
     color = (0, 0, 255)  # Red
 
-    time_start = 0
-
+    time_start = time()
 
     """Angles for six landmarks"""
     left_elbow_angle = calculate_angle(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value],
@@ -93,37 +103,36 @@ def classify_pose(landmarks, image, display = False):
     #         if (left_knee_angle > 165 and left_knee_angle < 195) or (right_knee_angle > 165 and right_knee_angle < 195):
     #             # Check if other knee is perpendicular
     #             if (left_knee_angle > 80 and left_knee_angle < 110) or (right_knee_angle > 80 and right_knee_angle < 110):
-    #
     #                 label = "Warrior II Pose"
 
     # Note: Camera feed is FLIPPED! Right is left and left is right
-    # Check if a shoulder is straight (parallel to the floor)
+    # Check if a shoulder is straight (parallel to the floor, perpendicular to the body)
     if (right_shoulder_angle > 60 and right_shoulder_angle < 120):# or (left_shoulder_angle > 70 and left_shoulder_angle < 110):
         print('a')
         label = "straight arm"
-        time_now= time()
 
-        time_record = time_now - time_start
+        time_now = time()
 
-        time_keeping(label, time_record)
         # Check if elbow is perpendicular
         if (right_elbow_angle > 240 and right_elbow_angle < 300):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
             print('b')
             label = "Hello pose"  # Person is waving, static
 
-
-    if label is not "Uknown pose":
+    if label is not "Unknown pose":
         color = (0, 255, 0)  # Green
 
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 4)
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, color, 2)
+
+    time_record = time_now - time_start
+    time_keeping(label, time_record)
 
     return image, label
 
 
 def main():
     time1 = 0
-    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+    with mp_pose.Pose(min_detection_confidence=0.51, min_tracking_confidence=0.51) as pose:
         while cap.isOpened():
             success, frame = cap.read()
 
@@ -149,6 +158,7 @@ def main():
             try:
                 landmarks = results.pose_landmarks.landmark
             except:
+                print("No frame extracted")
                 pass
 
             # 1. Right hand
@@ -184,7 +194,6 @@ def main():
             landmarks = []
             try:
                 if len(landmarks) is 0:
-                    #if len(landmarks) is 0:
                     for landmark in results.pose_landmarks.landmark:
                         # Append the landmark into the list.
                         landmarks.append((int(landmark.x * width),
@@ -193,8 +202,9 @@ def main():
                                          )
                     image, label = classify_pose(landmarks, image, display)
             except:
+                # No pose detected
+                # Needs better error handling
                 pass
-
 
             cv2.imshow('Webcam is running :)', image)
 
@@ -206,5 +216,6 @@ def main():
 
     # print(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value])
 
+
 main()
-print(time_keeping(pose="Stop", time_taken=0))
+print(calculate_time(ledger))
