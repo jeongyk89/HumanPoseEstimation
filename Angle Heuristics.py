@@ -19,15 +19,12 @@ def time_keeping(pose, time_taken):
     ledger.append([pose, time_taken])
     return ledger
 
-
 def calculate_time(ledger):
     time = 0
+    #print(len(ledger))
     for timestamps in ledger:
-        #for times in timestamps[1]:
-            #time = sum(times)
-        print(timestamps[1])
-        time +=timestamps[1]
-
+        #print(timestamps[1])
+        time += timestamps[1]
     return time
 
 
@@ -107,15 +104,11 @@ def classify_pose(landmarks, image, display = False):
 
     # Note: Camera feed is FLIPPED! Right is left and left is right
     # Check if a shoulder is straight (parallel to the floor, perpendicular to the body)
-    if (right_shoulder_angle > 60 and right_shoulder_angle < 120):# or (left_shoulder_angle > 70 and left_shoulder_angle < 110):
-        print('a')
+    if (right_shoulder_angle > 70 and right_shoulder_angle < 110):# or (left_shoulder_angle > 70 and left_shoulder_angle < 110):
         label = "straight arm"
 
-        time_now = time()
-
         # Check if elbow is perpendicular
-        if (right_elbow_angle > 240 and right_elbow_angle < 300):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
-            print('b')
+        if (right_elbow_angle > 250 and right_elbow_angle < 290):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
             label = "Hello pose"  # Person is waving, static
 
     if label is not "Unknown pose":
@@ -124,22 +117,22 @@ def classify_pose(landmarks, image, display = False):
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 4)
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, color, 2)
 
-    time_record = time_now - time_start
-    time_keeping(label, time_record)
-
     return image, label
 
 
 def main():
     time1 = 0
+    label = None
     with mp_pose.Pose(min_detection_confidence=0.51, min_tracking_confidence=0.51) as pose:
         while cap.isOpened():
             success, frame = cap.read()
 
+            starttime = time()
+
             if not success:  # Sometimes I had to force quit the program, this prevents that. Sort of.
                 break
 
-            # Flip the video to be a "mirror" on the laptop.
+            # Flip the video to be a "mirror" on the laptop. This is less jarring to look at.
             frame = cv2.flip(frame, 1)
 
             # Convert from BGR to RGB colorspace - MediaPipe likes RGB
@@ -150,11 +143,11 @@ def main():
             # Make Detections
             results = pose.process(image)
 
-            # Recolor image back to BGR for rendering - opencv likes BGR
+            # Recolor image back to BGR for rendering - OpenCV likes BGR
             image.flags.writeable = True
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-            # Avoid breaking the loop is no frame is extracted
+            # Avoid breaking the loop if no frame is extracted
             try:
                 landmarks = results.pose_landmarks.landmark
             except:
@@ -206,6 +199,10 @@ def main():
                 # Needs better error handling
                 pass
 
+            elapsed_time = time()
+            time_record = elapsed_time - starttime
+            time_keeping(label, time_record)
+
             cv2.imshow('Webcam is running :)', image)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
@@ -213,8 +210,6 @@ def main():
 
         cap.release()
         cv2.destroyAllWindows()
-
-    # print(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value])
 
 
 main()
