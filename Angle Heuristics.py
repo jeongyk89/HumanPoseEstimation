@@ -4,6 +4,7 @@ import mediapipe as mp
 import math
 import numpy as np
 from time import time
+import csv
 
 """Set up mediapipe"""
 mp_drawing = mp.solutions.drawing_utils     # Drawing helpers
@@ -16,20 +17,8 @@ ledger = []
 
 def time_keeping(pose, time_taken):
     global ledger
-    ledger.append([pose, time_taken])
+    ledger.append([pose, round(time_taken, 4)])
     return ledger
-
-def calculate_time(ledger):
-    time = 0
-    #print(len(ledger))
-    for timestamps in ledger:
-        #print(timestamps[1])
-        time += timestamps[1]
-    return time
-
-def merge_timestamps(ledger):
-    for poses in ledger:
-
 
 
 # Finding the angle between 3 points
@@ -126,12 +115,12 @@ def classify_pose(landmarks, image, display = False):
 
 def main():
     time1 = 0
-    label = None
+    #label = "No pose"
+    old_label = None
+    record_time_start = time()
     with mp_pose.Pose(min_detection_confidence=0.51, min_tracking_confidence=0.51) as pose:
         while cap.isOpened():
             success, frame = cap.read()
-
-            record_time_start = time()
 
             if not success:  # Sometimes I had to force quit the program, this prevents that. Sort of.
                 break
@@ -204,19 +193,24 @@ def main():
                 pass
 
             # Recording the pose and time it is active.
-            elapsed_time = time()
-            time_record = elapsed_time - record_time_start
-            time_keeping(label, time_record)
+            if label is not None:
+                if label is not old_label:
+                    elapsed_time = time()
+                    time_record = elapsed_time - record_time_start
+                    time_keeping(label, time_record)
+                    #if results.landmarks is True:
+                    record_time_start = time()
 
             cv2.imshow('Webcam is running :)', image)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
 
+            old_label = label
+
         cap.release()
         cv2.destroyAllWindows()
 
 
 main()
-print(str(round(calculate_time(ledger), 3)) + " seconds")
 print(ledger)
