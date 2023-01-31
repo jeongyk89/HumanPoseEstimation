@@ -5,6 +5,7 @@ import math
 import numpy as np
 from time import time
 import csv
+from datetime import datetime
 
 """Set up mediapipe"""
 mp_drawing = mp.solutions.drawing_utils     # Drawing helpers
@@ -13,13 +14,12 @@ mp_pose = mp.solutions.pose                 # Mediapipe Solutions
 cap = cv2.VideoCapture(0)
 """Set up time keeping"""
 ledger = []
-
+init_sec = time()
 
 def time_keeping(pose, time_taken):
     global ledger
     ledger.append([pose, round(time_taken, 4)])
     return ledger
-
 
 # Finding the angle between 3 points
 def calculate_angle(a, b, c):
@@ -45,11 +45,9 @@ def calculate_angle(a, b, c):
     #     angle += 360.0
     # return angle
 
-
 def classify_pose(landmarks, image, display = False):
     label = "Unknown pose"
     color = (0, 0, 255)  # Red
-
     time_start = time()
 
     """Angles for six landmarks"""
@@ -82,6 +80,9 @@ def classify_pose(landmarks, image, display = False):
                                         landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value],
                                         landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value]
                                         )
+    
+    left_hip =landmarks[mp_pose.PoseLandmark.LEFT_HIP]
+    right_hip =landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
 
     # # Check is both arms are straight
     # if (left_elbow_angle > 165 and left_elbow_angle < 195) and (right_elbow_angle > 165 and right_elbow_angle < 195):
@@ -104,18 +105,22 @@ def classify_pose(landmarks, image, display = False):
         if (right_elbow_angle > 250 and right_elbow_angle < 290):# or (left_elbow_angle > 70 and left_elbow_angle < 110):
             label = "Hello pose"  # Person is waving, static
 
-    if label is not "Unknown pose":
+    if label != "Unknown pose":
         color = (0, 255, 0)  # Green
+
+    current_sec = round(time() - init_sec,2)
+    #print(current_sec,round(right_shoulder_angle,2),round(right_elbow_angle,2))
+    #print(datetime.now(),left_hip,right_hip)
+    print(left_hip[0], left_hip[1])
 
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 4)
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, color, 2)
 
     return image, label
 
-
 def main():
     time1 = 0
-    #label = "No pose"
+    label = "No pose"
     old_label = None
     record_time_start = time()
     with mp_pose.Pose(min_detection_confidence=0.51, min_tracking_confidence=0.51) as pose:
@@ -164,6 +169,8 @@ def main():
                                       mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=4),
                                       mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
                                       )
+            
+            current_sec = round(time() - init_sec, 2)
 
             time2 = time()
             if (time2 - time1) > 0:
@@ -171,6 +178,7 @@ def main():
                 # FPS counter in green with a black border to make it easy to read
                 cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 6)
                 cv2.putText(image, 'FPS: {}'.format(int(fps)), (10, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
+                cv2.putText(image, str(current_sec), (10, 100), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 3)
             time1 = time2
 
             display = False
@@ -179,7 +187,7 @@ def main():
             height, width, depth = image.shape
             landmarks = []
             try:
-                if len(landmarks) is 0:
+                if len(landmarks) == 0:
                     for landmark in results.pose_landmarks.landmark:
                         # Append the landmark into the list.
                         landmarks.append((int(landmark.x * width),
@@ -211,6 +219,5 @@ def main():
         cap.release()
         cv2.destroyAllWindows()
 
-
 main()
-print(ledger)
+#print(ledger)
