@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Methodology Flowchart</title>
+	<style>
+		.box {
+			border: 1px solid black;
+			padding: 10px;
+			margin: 10px;
+			text-align: center;
+			font-weight: bold;
+		}
+
+		.arrow {
+			position: relative;
+		}
+
+		.arrow::before {
+			content: "";
+			position: absolute;
+			top: 50%;
+			right: -10px;
+			width: 0;
+			height: 0;
+			border-top: 10px solid transparent;
+			border-bottom: 10px solid transparent;
+			border-left: 10px solid black;
+			transform: translateY(-50%);
+		}
+	</style>
+</head>
+<body>
+	<div class="box">Start: This is where the methodology begins.</div>
+	<div class="arrow">
+		<div class="box">Define research questions</div>
+	</div>
+	<div class="arrow">
+		<div class="box">Design the study</div>
+	</div>
+	<div class="arrow">
+		<div class="box">Collect data</div>
+	</div>
+	<div class="arrow">
+		<div class="box">Analyze data</div>
+	</div>
+	<div class="arrow">
+		<div class="box">Draw conclusions</div>
+	</div>
+	<div class="arrow">
+		<div class="box">Communicate findings</div>
+	</div>
+	<div class="box">End: This is where the methodology ends.</div>
+</body>
+</html>

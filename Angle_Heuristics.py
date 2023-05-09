@@ -11,7 +11,7 @@ from datetime import datetime
 mp_drawing = mp.solutions.drawing_utils     # Drawing helpers
 mp_pose = mp.solutions.pose                 # Mediapipe Solutions
 """Set up OpenCV"""
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 """Set up time keeping"""
 ledger = []
 init_sec = time()
@@ -111,7 +111,9 @@ def classify_pose(landmarks, image, display = False):
     current_sec = round(time() - init_sec,2)
     #print(current_sec,round(right_shoulder_angle,2),round(right_elbow_angle,2))
     #print(datetime.now(),left_hip,right_hip)
-    print(left_hip[0], left_hip[1])
+    temp_print = "L"+ str(right_shoulder_angle) + ", R"+str((left_shoulder_angle-360)*(-1));
+    print(temp_print)
+    #print(left_hip[0], left_hip[1])
 
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 4)
     cv2.putText(image, label, (10, 60), cv2.FONT_HERSHEY_PLAIN, 2, color, 2)
